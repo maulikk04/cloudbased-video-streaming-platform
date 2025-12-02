@@ -9,7 +9,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # --- Configuration (Lambda Environment Variables) ---
-DYNAMODB_TABLE_NAME = os.environ.get('DYNAMODB_TABLE_NAME')
+DYNAMODB_TABLE_NAME = os.environ.get('VIDEO_METADATA_TABLE_NAME')
 PROCESSED_S3_BUCKET = os.environ.get('PROCESSED_S3_BUCKET')
 CLOUDFRONT_DOMAIN = os.environ.get('CLOUDFRONT_DOMAIN')
 CHUNK_DURATION_SEC = 60 # Must match the Segmentation Service setting

@@ -110,7 +110,7 @@ jobs:
           rm -rf backend/playback_service/package backend/playback_service/deployment.zip
 
       # =================================================================
-      # 7. DEPLOY CONTENT METADATA SERVICE (NEW)
+      # 7. DEPLOY CONTENT METADATA SERVICE (CLEANED)
       # =================================================================
       - name: 7.1 Package and Deploy Content Metadata Service
         run: |
@@ -123,15 +123,15 @@ jobs:
           zip -r ../deployment.zip .
           cd -
 
-          # 2. UPDATE CONFIGURATION FIRST
-          aws lambda update-function-configuration \
-            --function-name ContentMetaDataService \ 
-            --environment "Variables={VIDEO_METADATA_TABLE_NAME=${{ secrets.VIDEO_METADATA_TABLE_NAME}},SQS_SEGMENTATION_QUEUE_URL=${{ secrets.SQS_SEGMENTATION_QUEUE_URL}}}"
-          
-          # 3. Update Environment Variables (DynamoDB Table Name, Region)
+          # 2. UPDATE CODE (Updates the zip file)
           aws lambda update-function-code \
-            --function-name ContentMetaDataService \
+            --function-name ContentMetaDataService \ 
             --zip-file fileb://backend/content_metadata_service/deployment.zip
+
+          # 3. UPDATE CONFIGURATION (Updates environment variables)
+          aws lambda update-function-configuration \
+            --function-name ContentMetaDataService \
+            --environment "Variables={VIDEO_METADATA_TABLE_NAME=${{ secrets.VIDEO_METADATA_TABLE_NAME}},SQS_SEGMENTATION_QUEUE_URL=${{ secrets.SQS_SEGMENTATION_QUEUE_URL}}}"
 
           # 4. Clean up
           rm -rf backend/content_metadata_service/package backend/content_metadata_service/deployment.zip
@@ -139,9 +139,9 @@ jobs:
       # =================================================================
       # 8. DEPLOY Manifest File Processor 
       # =================================================================
-      - name: 8.1 Package and Deploy Content Metadata Service
+      - name: 8.1 Package and Deploy Manifest File Processor
         run: |
-          echo "Deploying ContentMetadataService..."
+          echo "Deploying ManifestFileProcessor..."
           
           # 1. Install dependencies and package code (boto3)
           pip install -r backend/manifest_file_processor/requirements.txt -t backend/manifest_file_processor/package
@@ -150,12 +150,12 @@ jobs:
           zip -r ../deployment.zip .
           cd -
 
-          # 2. UPDATE CONFIGURATION FIRST
+          # 2. UPDATE CONFIGURATION (Sets Env Vars)
           aws lambda update-function-configuration \
             --function-name ManifestFileProcessor \
-            --environment "Variables={DYNAMODB_TABLE_NAME=${{ secrets.DYNAMODB_TABLE_NAME}},PROCESSED_S3_BUCKET=${{ secrets.PROCESSED_S3_BUCKET}},CLOUDFRONT_DOMAIN=${{ secrets.CLOUDFRONT_DOMAIN}}}"
+            --environment "Variables={VIDEO_METADATA_TABLE_NAME=${{ secrets.VIDEO_METADATA_TABLE_NAME}},PROCESSED_S3_BUCKET=${{ secrets.PROCESSED_S3_BUCKET}},CLOUDFRONT_DOMAIN=${{ secrets.CLOUDFRONT_DOMAIN}}}"
           
-          # 3. Update Environment Variables (DynamoDB Table Name, Region)
+          # 3. UPDATE CODE
           aws lambda update-function-code \
             --function-name ManifestFileProcessor \
             --zip-file fileb://backend/manifest_file_processor/deployment.zip
