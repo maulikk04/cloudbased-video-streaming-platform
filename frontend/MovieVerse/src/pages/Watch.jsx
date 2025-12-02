@@ -5,12 +5,12 @@ import VideoPlayer from "@/components/VideoPlayer";
 import { Button } from "@/components/ui/button";
 import { Share2, Plus, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import dotenv from "dotenv";
 
+// ✅ API for fetching video metadata (unchanged)
+const VIDEO_DATA_API = import.meta.env.VITE_API_GET_VIDEOS;
 
-// API for fetching video metadata
-dotenv.config();
-
+// ✅ CloudFront distribution (public HLS)
+const CLOUDFRONT_DOMAIN = import.meta.env.VITE_CLOUDFRONT_DOMAIN;
 
 export default function Watch() {
   const { id } = useParams();
@@ -19,47 +19,21 @@ export default function Watch() {
 
   const [video, setVideo] = useState(null);
   const [loading, setLoading] = useState(true);
-  const API_URL = import.meta.env.VITE_API_GET_VIDEOS;
-  const PLAYBACK_AUTH = import.meta.env.VITE_API_PLAYBACK_AUTH;
-  const CLOUDFRONT_DOMAIN = import.meta.env.VITE_CLOUDFRONT_DOMAIN;
-  // 1️⃣ Authenticate playback (signed cookies)
-  async function authenticatePlayback() {
-    console.log("STEP 1: Requesting signed cookies…");
 
-    try {
-      const response = await fetch(PLAYBACK_AUTH_API, {
-        method: "GET",
-        credentials: "include", // required to store CloudFront cookies
-      });
-
-      console.log("Playback-auth response:", response);
-
-      // CloudFront cookies NEVER show in JS (HttpOnly), so we test indirectly:
-      console.log("document.cookie (sandbox cookies only):", document.cookie);
-
-      // Check if Set-Cookie header is present
-      console.log(
-        "Headers received (cannot show Set-Cookie due to browser):",
-        [...response.headers.entries()]
-      );
-
-      if (!response.ok) {
-        console.error("❌ playback-auth FAILED:", await response.text());
-      } else {
-        console.log("✔ playback-auth executed. Cookie should be set.");
-      }
-    } catch (err) {
-      console.error("❌ ERROR contacting playback-auth Lambda:", err);
-    }
-  }
-
-  // 2️⃣ Fetch video metadata
+  // ✅ Fetch video metadata from backend
   async function loadVideoData() {
-    console.log("STEP 2: Fetching video metadata…");
+    console.log("STEP: Fetching video metadata…");
 
     try {
       const res = await fetch(VIDEO_DATA_API);
+      if (!res.ok) {
+        console.error("❌ Failed to fetch video data:", res.status, res.statusText);
+        setLoading(false);
+        return;
+      }
+
       const allVideos = await res.json();
+      console.log("All videos from API:", allVideos);
 
       const movie = allVideos.find((v) => v.id.toString() === id);
 
@@ -76,31 +50,20 @@ export default function Watch() {
     setLoading(false);
   }
 
-  // 3️⃣ RUN ON PAGE LOAD
+  // ✅ Run on page load
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/");
       return;
     }
 
-    async function startPlaybackFlow() {
-      console.log("=============== PLAYBACK DIAGNOSTICS START ===============");
+    console.log("=============== VIDEO PLAYBACK (NO COOKIES) START ===============");
+    loadVideoData().then(() => {
+      console.log("=============== VIDEO PLAYBACK (NO COOKIES) END ===============");
+    });
+  }, [id, isAuthenticated, navigate]);
 
-      await authenticatePlayback();
-
-      console.log("STEP 1 complete.");
-      console.log("Checking cookies again…");
-      console.log("document.cookie:", document.cookie);
-
-      await loadVideoData();
-
-      console.log("=============== PLAYBACK DIAGNOSTICS END ===============");
-    }
-
-    startPlaybackFlow();
-  }, [id, isAuthenticated]);
-
-  if (loading || !video) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
         Loading video...
@@ -108,11 +71,19 @@ export default function Watch() {
     );
   }
 
-  // 4️⃣ Construct streaming URL
+  if (!video) {
+    return (
+      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center">
+        <p className="mb-4">Video not found.</p>
+        <Button onClick={() => navigate(-1)}>Go Back</Button>
+      </div>
+    );
+  }
+
+  // ✅ Construct streaming URL (directly from CDN)
   const streamUrl = `${CLOUDFRONT_DOMAIN}/processed/${video.id}/master.m3u8`;
 
   console.log("Final HLS URL:", streamUrl);
-  console.log("Try opening this URL manually:", streamUrl);
 
   return (
     <div className="min-h-screen bg-black text-white">

@@ -2,9 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { MovieCard } from "@/components/MovieCard";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import dotenv from "dotenv";
 
-dotenv.config();
 export default function VideoGallery() {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);

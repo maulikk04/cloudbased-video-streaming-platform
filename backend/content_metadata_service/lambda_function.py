@@ -57,6 +57,7 @@ def get_descriptive_metadata(bucket, csv_key):
         return {}
 
 
+# 2. TECHNICAL METADATA EXTRACTION USING FFPROBE
 def run_ffprobe(filepath):
     """Executes the ffprobe command to extract detailed technical metadata."""
     cmd = [

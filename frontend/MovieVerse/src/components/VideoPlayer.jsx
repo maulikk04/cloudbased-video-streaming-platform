@@ -9,27 +9,55 @@ export default function VideoPlayer({ videoUrl }) {
 
     if (!video || !videoUrl) return;
 
+    console.log("Initializing video playback with URL:", videoUrl);
+
     let hls;
 
     // SAFARI – native HLS support
     if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      console.log("Using native HLS playback (Safari).");
+
       video.src = videoUrl;
       video.load();
 
-      video.play().catch((err) => {
-        console.warn("Autoplay blocked:", err);
-      });
-    } 
+      video
+        .play()
+        .then(() => {
+          console.log("Native video playback started.");
+        })
+        .catch((err) => {
+          console.warn("Autoplay blocked (Safari native):", err);
+        });
+    }
     // CHROME / FIREFOX / EDGE – use HLS.js
     else if (Hls.isSupported()) {
+      console.log("Using Hls.js for playback.");
+
       hls = new Hls({
         enableWorker: true,
         lowLatencyMode: true,
         backBufferLength: 90,
+        // 🔑 MAKE SURE WE NEVER SEND CREDENTIALS
+        xhrSetup: (xhr, url) => {
+          console.log("Hls.js XHR to:", url);
+          xhr.withCredentials = false;
+        },
       });
 
       hls.loadSource(videoUrl);
       hls.attachMedia(video);
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        console.log("HLS manifest parsed, starting playback…");
+        video
+          .play()
+          .then(() => {
+            console.log("Hls.js video playback started.");
+          })
+          .catch((err) => {
+            console.warn("Autoplay blocked (Hls.js):", err);
+          });
+      });
 
       // auto recover from fatal errors
       hls.on(Hls.Events.ERROR, function (event, data) {
@@ -52,11 +80,18 @@ export default function VideoPlayer({ videoUrl }) {
           }
         }
       });
+    } else {
+      console.error(
+        "HLS is not supported in this browser, and no native support either."
+      );
     }
 
     // Cleanup
     return () => {
-      if (hls) hls.destroy();
+      if (hls) {
+        console.log("Destroying Hls.js instance.");
+        hls.destroy();
+      }
     };
   }, [videoUrl]);
 
@@ -67,7 +102,7 @@ export default function VideoPlayer({ videoUrl }) {
         controls
         autoPlay
         muted={false}
-        crossOrigin="use-credentials"   // <-- REQUIRED for CloudFront Signed Cookies
+        crossOrigin="anonymous" 
         className="w-full h-full object-contain bg-black"
       />
     </div>
