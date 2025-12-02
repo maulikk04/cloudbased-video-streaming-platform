@@ -52,7 +52,7 @@ jobs:
           # C. Update Environment Variables (e.g., BUCKET_NAME)
           aws lambda update-function-configuration \
             --function-name GeneratePresignedURL \
-            --environment "Variables={BUCKET_NAME=${{ secrets.RAWVIDEO_BUCKET_NAME}} , REGION = ${{ secrets.AWS_REGION}} }"
+            --environment "Variables={BUCKET_NAME=${{ secrets.RAWVIDEO_BUCKET_NAME}},REGION=${{ secrets.AWS_REGION}}}"
 
       # =================================================================
       # 5. DEPLOY CONTENT LISTING SERVICE (Code and Configuration)
@@ -75,7 +75,7 @@ jobs:
           # C. Update Environment Variables (DynamoDB Table Name, Bucket Name)
           aws lambda update-function-configuration \
             --function-name ContentListingService \
-            --environment "Variables={TABLE_NAME =${{ secrets.VIDEO_METADATA_TABLE_NAME}}, BUCKET_NAME=${{ secrets.RAWVIDEO_BUCKET_NAME}}, REGION=${{ secrets.AWS_REGION}} }"
+            --environment "Variables={TABLE_NAME=${{ secrets.VIDEO_METADATA_TABLE_NAME}},BUCKET_NAME=${{ secrets.RAWVIDEO_BUCKET_NAME}},REGION=${{ secrets.AWS_REGION}}}"
 
       # =================================================================
       # 6. DEPLOY PLAYBACK SERVICE (Code and Configuration)
@@ -100,7 +100,7 @@ jobs:
           # C. Update Environment Variables (CDN Keys)
           aws lambda update-function-configuration \
             --function-name userAuthenticate \
-            --environment "Variables={KEY_PAIR_ID=${{ secrets.KEY_PAIR_ID_PLAYBACK}} , CLOUDFRONT_DOMAIN = ${{ secrets.CLOUDFRONT_DOMAIN}} }"
+            --environment "Variables={KEY_PAIR_ID=${{ secrets.KEY_PAIR_ID_PLAYBACK}},CLOUDFRONT_DOMAIN=${{ secrets.CLOUDFRONT_DOMAIN}}}"
 
       - name: 7. Cleanup Local Artifacts
         run: |
