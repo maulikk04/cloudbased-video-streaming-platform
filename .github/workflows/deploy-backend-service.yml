@@ -45,12 +45,12 @@ jobs:
 
           # B. Update the Lambda Code on AWS
           aws lambda update-function-code \
-            --function-name UploadService \
+            --function-name lambda_function \
             --zip-file fileb://backend/upload_service/deployment.zip
           
           # C. Update Environment Variables (e.g., BUCKET_NAME)
           aws lambda update-function-configuration \
-            --function-name UploadService \
+            --function-name lambda_function \
             --environment "Variables={BUCKET_NAME=${{ secrets.RAWVIDEO_BUCKET_NAME}} , REGION = ${{ secrets.AWS_REGION}} }"
 
       # =================================================================
@@ -68,12 +68,12 @@ jobs:
 
           # B. Update the Lambda Code on AWS
           aws lambda update-function-code \
-            --function-name ContentListingService \
+            --function-name lambda_function \
             --zip-file fileb://backend/contentlisting_service/deployment.zip
           
           # C. Update Environment Variables (DynamoDB Table Name, Bucket Name)
           aws lambda update-function-configuration \
-            --function-name ContentListingService \
+            --function-name lambda_function \
             --environment "Variables={TABLE_NAME =${{ secrets.VIDEO_METADATA_TABLE_NAME}}, BUCKET_NAME=${{ secrets.RAWVIDEO_BUCKET_NAME}}, REGION=${{ secrets.AWS_REGION}} }"
 
       # =================================================================
@@ -93,12 +93,12 @@ jobs:
 
           # B. Update the Lambda Code on AWS
           aws lambda update-function-code \
-            --function-name PlaybackService \
+            --function-name lambda_function \
             --zip-file fileb://backend/playback_service/deployment.zip
           
           # C. Update Environment Variables (CDN Keys)
           aws lambda update-function-configuration \
-            --function-name PlaybackService \
+            --function-name lambda_function \
             --environment "Variables={KEY_PAIR_ID=${{ secrets.KEY_PAIR_ID_PLAYBACK}} , CLOUDFRONT_DOMAIN = ${{ secrets.CLOUDFRONT_DOMAIN}} }"
 
       - name: 7. Cleanup Local Artifacts
