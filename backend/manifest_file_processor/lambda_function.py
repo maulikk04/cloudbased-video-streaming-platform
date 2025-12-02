@@ -18,7 +18,7 @@ CHUNK_DURATION_SEC = 60 # Must match the Segmentation Service setting
 DYNAMODB = boto3.resource('dynamodb')
 S3 = boto3.client('s3')
 
-# --- DUPLICATE BITRATE LADDER from job-worker.py (REQUIRED for master manifest generation) ---
+# --- DUPLICATE BITRATE LADDER from job-worker.py (REQUIRED for manifest generation) ---
 MASTER_BITRATE_LADDER = {
     '1080p': {'height': 1080, 'vbr': '5000k', 'abr': '192k'},
     '720p':  {'height': 720,  'vbr': '2500k', 'abr': '128k'},
@@ -38,9 +38,8 @@ STREAM_TEMPLATE = """#EXT-X-STREAM-INF:BANDWIDTH={bandwidth},RESOLUTION={resolut
 
 # --- Helper Functions ---
 
-# Helper function definition needed for update_dynamo_status (copied from worker logic)
 def update_dynamo_status(video_id, status, cdn_path=None):
-    """Updates the video status in the DynamoDB table (copied from worker for self-contained execution)."""
+    """Updates the video status in the DynamoDB table."""
     try:
         table = DYNAMODB.Table(DYNAMODB_TABLE_NAME)
         update_expression = "SET #S = :s"
@@ -60,7 +59,6 @@ def update_dynamo_status(video_id, status, cdn_path=None):
     except Exception as e:
         logger.error(f"ERROR: Failed to update DynamoDB for {video_id}. Full Error: {e}")
 
-#update chunk counter
 def update_chunk_counter(video_id, total_chunks, completed_qualities):
     """
     Atomically increments the ChunksCompleted counter and tracks completed qualities.
@@ -85,7 +83,6 @@ def update_chunk_counter(video_id, total_chunks, completed_qualities):
     return response['Attributes']
 
 
-# **MODIFIED: Now accepts video_duration**
 def stitch_chunk_manifests(video_id, quality, total_chunks, video_duration):
     """
     Stitches together individual chunk manifests into one seamless sequential.m3u8 playlist.
@@ -94,7 +91,6 @@ def stitch_chunk_manifests(video_id, quality, total_chunks, video_duration):
     sequential_content = ["#EXTM3U", "#EXT-X-VERSION:3"]
     
     # Ensure video_duration is a float for accurate calculation
-    # NOTE: It's stored as Decimal in DynamoDB, must be cast to float.
     video_duration = float(video_duration)
     
     # 1. Iterate through all expected chunks (0 to TotalChunks-1)
@@ -146,27 +142,43 @@ def stitch_chunk_manifests(video_id, quality, total_chunks, video_duration):
     return final_manifest_key
 
 def generate_master_manifest(video_id, qualities):
-    """Generates the master manifest file that links to all sequential playlists."""
+    """
+    Generates the master manifest file that links to all sequential playlists.
+    Sorts streams by BANDWIDTH (descending) as per HLS best practice.
+    """
     
-    master_streams = []
-    
-    # We only include streams that were successfully produced by the workers
+    # 1. Collect stream data for only the successful qualities
+    stream_data = []
     for quality in qualities:
-        # Use the defined MASTER_BITRATE_LADDER
         settings = MASTER_BITRATE_LADDER.get(quality)
         if not settings: continue
         
         # Calculate approximate screen width (W=H*16/9)
-        width = int(settings['height'] * (16/9))
+        # Use 854 for 480p standard 16:9 compliance
+        height = settings['height']
+        width = 854 if height == 480 else int(height * (16/9))
         
+        stream_data.append({
+            # Convert '5000k' to 5000000 integer for sorting
+            'bandwidth': int(settings['vbr'].replace('k', '000')),
+            'resolution': f"{width}x{height}",
+            'quality_folder': quality
+        })
+
+    # 2. Sort the streams by BANDWIDTH in descending order (CRITICAL FIX)
+    stream_data.sort(key=lambda x: x['bandwidth'], reverse=True)
+    
+    master_streams = []
+    
+    # 3. Format the sorted data into the final manifest strings
+    for data in stream_data:
         master_streams.append(STREAM_TEMPLATE.format(
-            # Bandwidth needs to be the integer value (e.g., 5000k becomes 5000000)
-            bandwidth=settings['vbr'].replace('k', '000'), 
-            resolution=f"{width}x{settings['height']}", 
-            quality_folder=quality # quality folder is just '720p', '1080p', etc.
+            bandwidth=data['bandwidth'], 
+            resolution=data['resolution'], 
+            quality_folder=data['quality_folder']
         ))
 
-    # Combine streams and create the master file
+    # 4. Combine streams and create the master file
     master_key = f"processed/{video_id}/master.m3u8"
     final_manifest_body = MASTER_MANIFEST_TEMPLATE.format(streams='\n'.join(master_streams))
     
@@ -209,7 +221,6 @@ def lambda_handler(event, context):
                 
                 # Fetch video duration from DynamoDB (REQUIRED FOR STITCHING)
                 video_item = dynamo_table.get_item(Key={'VideoID': video_id})['Item']
-                # The video duration is stored as a Decimal in the item
                 video_duration = video_item['DurationSec'] 
                 
                 # Get the final set of unique qualities produced across all chunks
