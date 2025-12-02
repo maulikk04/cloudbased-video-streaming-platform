@@ -125,12 +125,12 @@ jobs:
 
           # 2. UPDATE CONFIGURATION FIRST
           aws lambda update-function-code \
-            --function-name ContentMetaDataService \ # <--- REPLACE WITH YOUR EXACT AWS FUNCTION NAME
+            --function-name ContentMetaDataService \ 
             --zip-file fileb://backend/content_metadata_service/deployment.zip
           
           # 3. Update Environment Variables (DynamoDB Table Name, Region)
           aws lambda update-function-configuration \
-            --function-name ContentMetaDataService \ # <--- REPLACE WITH YOUR EXACT AWS FUNCTION NAME
+            --function-name ContentMetaDataService \ 
             --environment "Variables={VIDEO_METADATA_TABLE_NAME=${{ secrets.VIDEO_METADATA_TABLE_NAME}},SQS_SEGMENTATION_QUEUE_URL=${{ secrets.SQS_SEGMENTATION_QUEUE_URL}}}"
 
           # 4. Clean up
@@ -152,12 +152,12 @@ jobs:
 
           # 2. UPDATE CONFIGURATION FIRST
           aws lambda update-function-code \
-            --function-name ManifestFileProcessor \ # <--- REPLACE WITH YOUR EXACT AWS FUNCTION NAME
+            --function-name ManifestFileProcessor \ 
             --zip-file fileb://backend/manifest_file_processor/deployment.zip
           
           # 3. Update Environment Variables (DynamoDB Table Name, Region)
           aws lambda update-function-configuration \
-            --function-name ManifestFileProcessor \ # <--- REPLACE WITH YOUR EXACT AWS FUNCTION NAME
+            --function-name ManifestFileProcessor \ 
             --environment "Variables={DYNAMODB_TABLE_NAME=${{ secrets.DYNAMODB_TABLE_NAME}},PROCESSED_S3_BUCKET=${{ secrets.PROCESSED_S3_BUCKET}},CLOUDFRONT_DOMAIN=${{ secrets.CLOUDFRONT_DOMAIN}}}"
 
           # 4. Clean up
@@ -179,12 +179,12 @@ jobs:
 
           # 2. UPDATE CONFIGURATION FIRST
           aws lambda update-function-code \
-            --function-name SegmentationService \ # <--- REPLACE WITH YOUR EXACT AWS FUNCTION NAME
+            --function-name SegmentationService \ 
             --zip-file fileb://backend/segmentation_service/deployment.zip
           
           # 3. Update Environment Variables (DynamoDB Table Name, Region)
           aws lambda update-function-configuration \
-            --function-name SegmentationService \ # <--- REPLACE WITH YOUR EXACT AWS FUNCTION NAME
+            --function-name SegmentationService \ 
             --environment "Variables={TRANSCODING_JOB_QUEUE_URL=${{ secrets.TRANSCODING_JOB_QUEUE_URL}}}"
 
           # 4. Clean up
