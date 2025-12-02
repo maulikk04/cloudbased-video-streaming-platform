@@ -1,0 +1,168 @@
+/* Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;500;700&family=Space+Grotesk:wght@300;500;700&display=swap');
+
+/* Tailwind v4 imports */
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Custom dark variant */
+@custom-variant dark (&:is(.dark *));
+
+/* ---------------------------
+   ROOT VARIABLES (OKLCH BASE)
+   --------------------------- */
+:root {
+  --radius: 0.625rem;
+
+  /* Base Theme Variables */
+  --background: oklch(0.15 0 0);
+  --foreground: oklch(210 40% 98%);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+
+  /* Cinematic Palette (From File 2) but only as EXTRA vars */
+  --cinematic--primary-foreground: 0 0% 100%;
+  --cinematic-secondary: 193 100% 47%;
+  --cinematic-accent: 172 100% 48%;
+  --cinematic-background: 228 81% 5%;
+  --cinematic-foreground: 210 40% 98%;
+  --cinematic-muted: 228 50% 15%;
+  --cinematic-muted-foreground: 215 20% 65%;
+}
+
+/* ---------------------------
+   DARK MODE VARIABLES
+   --------------------------- */
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+}
+
+/* ---------------------------
+   TAILWIND v4 THEME MAPPING
+   --------------------------- */
+   @theme inline {
+    --color-background: hsl(228 81% 5%);
+    --color-foreground: hsl(210 40% 98%);
+  
+    --color-card: hsl(228 81% 7%);
+    --color-card-foreground: hsl(210 40% 98%);
+  
+    --color-primary: hsl(268 75% 63%);
+    --color-primary-foreground: hsl(0 0% 100%);
+  
+    --color-secondary: hsl(193 100% 47%);
+    --color-secondary-foreground: hsl(222 47% 11%);
+  
+    --color-accent: hsl(172 100% 48%);
+    --color-accent-foreground: hsl(222 47% 11%);
+  
+    --color-muted: hsl(228 50% 15%);
+    --color-muted-foreground: hsl(215 20% 65%);
+  
+    --color-border: hsl(228 50% 15%);
+    --color-input: hsl(228 50% 15%);
+  
+    --color-ring: hsl(268 75% 63%);
+  }
+  
+
+/* ---------------------------
+   BASE STYLES
+   --------------------------- */
+@layer base {
+  body {
+    background-color: hsl(var(--cinematic-background));
+    color: hsl(var(--cinematic-foreground));
+    font-family: "DM Sans", "Space Grotesk", sans-serif;
+    min-height: 100vh;
+
+    background-image:
+    radial-gradient(circle at 50% 0%, hsl(var(--cinematic-primary) / 0.10), transparent 70%)
+    linear-gradient(to bottom, hsl(var(--cinematic-background)), hsl(228 85% 3%));
+
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Space Grotesk", sans-serif;
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--cinematic-muted));
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--cinematic-primary));
+}
+
+/* ---------------------------
+   UTILITIES
+   --------------------------- */
+@layer utilities {
+  .text-gradient-primary {
+    background: linear-gradient(to right, hsl(var(--cinematic-primary)), purple, hsl(var(--cinematic-secondary)));
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+
+  .glass-panel {
+    background: hsl(var(--background) / 0.6);
+    backdrop-filter: blur(24px);
+    border: 1px solid hsl(var(--cinematic-foreground) / 0.1);
+  }
+
+  .glass-card {
+    background: hsl(0 0% 100% / 0.05);
+    backdrop-filter: blur(16px);
+    border: 1px solid hsl(0 0% 100% / 0.05);
+    transition: 0.3s;
+  }
+
+  .glass-card:hover {
+    background: hsl(0 0% 100% / 0.1);
+  }
+
+  .neon-glow {
+    box-shadow: 0 0 20px hsl(var(--cinematic-primary) / 0.5);
+  }
+
+  .text-glow {
+    text-shadow: 0 0 20px hsl(var(--cinematic-primary) / 0.5);
+  }
+}
