@@ -4,6 +4,7 @@ import datetime
 import rsa
 import base64
 import time
+import os
 
 # CONFIGURATION
 PARAMETER_NAME = "/vidstream/private_key" 
