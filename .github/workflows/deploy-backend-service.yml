@@ -3,12 +3,7 @@ name: Deploy Core Backend Lambdas
 on:
   push:
     branches: [ main ]
-    # This ensures the pipeline only runs if code in these folders changes
-    # paths:
-    #   - 'backend/**'
-    #   # - 'backend/upload_service/**'
-    #   # - 'backend/contentlisting_service/**'
-    #   # - 'backend/playback_service/**'
+
 
 jobs:
   deploy:
@@ -114,7 +109,91 @@ jobs:
           # 4. Clean up
           rm -rf backend/playback_service/package backend/playback_service/deployment.zip
 
-      - name: 7. Cleanup Local Artifacts
+      # =================================================================
+      # 7. DEPLOY CONTENT METADATA SERVICE (NEW)
+      # =================================================================
+      - name: 7.1 Package and Deploy Content Metadata Service
+        run: |
+          echo "Deploying ContentMetadataService..."
+          
+          # 1. Install dependencies and package code (boto3)
+          pip install -r backend/content_metadata_service/requirements.txt -t backend/content_metadata_service/package
+          cp backend/content_metadata_service/lambda_function.py backend/content_metadata_service/package/
+          cd backend/content_metadata_service/package
+          zip -r ../deployment.zip .
+          cd -
+
+          # 2. UPDATE CONFIGURATION FIRST
+          aws lambda update-function-code \
+            --function-name ContentMetaDataService \ # <--- REPLACE WITH YOUR EXACT AWS FUNCTION NAME
+            --zip-file fileb://backend/content_metadata_service/deployment.zip
+          
+          # 3. Update Environment Variables (DynamoDB Table Name, Region)
+          aws lambda update-function-configuration \
+            --function-name ContentMetaDataService \ # <--- REPLACE WITH YOUR EXACT AWS FUNCTION NAME
+            --environment "Variables={VIDEO_METADATA_TABLE_NAME=${{ secrets.VIDEO_METADATA_TABLE_NAME}},SQS_SEGMENTATION_QUEUE_URL=${{ secrets.SQS_SEGMENTATION_QUEUE_URL}}}"
+
+          # 4. Clean up
+          rm -rf backend/content_metadata_service/package backend/content_metadata_service/deployment.zip
+
+      # =================================================================
+      # 8. DEPLOY Manifest File Processor 
+      # =================================================================
+      - name: 8.1 Package and Deploy Content Metadata Service
+        run: |
+          echo "Deploying ContentMetadataService..."
+          
+          # 1. Install dependencies and package code (boto3)
+          pip install -r backend/manifest_file_processor/requirements.txt -t backend/manifest_file_processor/package
+          cp backend/manifest_file_processor/lambda_function.py backend/manifest_file_processor/package/
+          cd backend/manifest_file_processor/package
+          zip -r ../deployment.zip .
+          cd -
+
+          # 2. UPDATE CONFIGURATION FIRST
+          aws lambda update-function-code \
+            --function-name ManifestFileProcessor \ # <--- REPLACE WITH YOUR EXACT AWS FUNCTION NAME
+            --zip-file fileb://backend/manifest_file_processor/deployment.zip
+          
+          # 3. Update Environment Variables (DynamoDB Table Name, Region)
+          aws lambda update-function-configuration \
+            --function-name ManifestFileProcessor \ # <--- REPLACE WITH YOUR EXACT AWS FUNCTION NAME
+            --environment "Variables={DYNAMODB_TABLE_NAME=${{ secrets.DYNAMODB_TABLE_NAME}},PROCESSED_S3_BUCKET=${{ secrets.PROCESSED_S3_BUCKET}},CLOUDFRONT_DOMAIN=${{ secrets.CLOUDFRONT_DOMAIN}}}"
+
+          # 4. Clean up
+          rm -rf backend/manifest_file_processor/package backend/manifest_file_processor/deployment.zip
+
+      # =================================================================
+      # 9. DEPLOY Segmentation Service
+      # =================================================================
+      - name: 9.1 Package and Deploy Segmentation Service
+        run: |
+          echo "Deploying ContentMetadataService..."
+          
+          # 1. Install dependencies and package code (boto3)
+          pip install -r backend/segmentation_service/requirements.txt -t backend/segmentation_service/package
+          cp backend/segmentation_service/lambda_function.py backend/segmentation_service/package/
+          cd backend/segmentation_service/package
+          zip -r ../deployment.zip .
+          cd -
+
+          # 2. UPDATE CONFIGURATION FIRST
+          aws lambda update-function-code \
+            --function-name SegmentationService \ # <--- REPLACE WITH YOUR EXACT AWS FUNCTION NAME
+            --zip-file fileb://backend/segmentation_service/deployment.zip
+          
+          # 3. Update Environment Variables (DynamoDB Table Name, Region)
+          aws lambda update-function-configuration \
+            --function-name SegmentationService \ # <--- REPLACE WITH YOUR EXACT AWS FUNCTION NAME
+            --environment "Variables={TRANSCODING_JOB_QUEUE_URL=${{ secrets.TRANSCODING_JOB_QUEUE_URL}}}"
+
+          # 4. Clean up
+          rm -rf backend/segmentation_service/package backend/segmentation_service/deployment.zip
+
+
+
+      - name: 10. Cleanup Local Artifacts
         run: |
           # This removes the local package/zip files created during deployment
           rm -rf backend/*/package backend/*/deployment.zip
+      
