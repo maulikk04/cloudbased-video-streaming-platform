@@ -86,53 +86,61 @@ def update_chunk_counter(video_id, total_chunks, completed_qualities):
 def stitch_chunk_manifests(video_id, quality, total_chunks, video_duration):
     """
     Stitches together individual chunk manifests into one seamless sequential.m3u8 playlist.
-    Uses video_duration to correctly calculate the end time of the final chunk.
+    Removes header/footer tags from individual chunks to prevent HLS specification errors.
     """
-    sequential_content = ["#EXTM3U", "#EXT-X-VERSION:3"]
     
-    # Ensure video_duration is a float for accurate calculation
+    # 1. Initialize the sequential manifest with the required single header
+    sequential_content = ["#EXTM3U", "#EXT-X-VERSION:3", f"#EXT-X-TARGETDURATION:{CHUNK_DURATION_SEC}"]
+    # NOTE: #EXT-X-MEDIA-SEQUENCE is often omitted or set to 0, which is handled implicitly by starting the sequence.
+
     video_duration = float(video_duration)
     
-    # 1. Iterate through all expected chunks (0 to TotalChunks-1)
+    # 2. Iterate through all expected chunks
     for i in range(total_chunks):
         start_time = i * CHUNK_DURATION_SEC
-        
-        # CRITICAL FIX: Calculate the end time, ensuring it doesn't exceed the total video duration.
         calculated_end_time = min(start_time + CHUNK_DURATION_SEC, video_duration)
-        
-        # Use the same integer conversion logic as the worker for file naming consistency
         chunk_id = f"{int(start_time):04d}-{int(calculated_end_time):04d}" 
-        
-        # This is the exact key the worker must have uploaded
         chunk_manifest_key = f"processed/{video_id}/{quality}/chunk_{chunk_id}.m3u8"
         
         try:
-            # 2. Download the individual chunk manifest content
             response = S3.get_object(Bucket=PROCESSED_S3_BUCKET, Key=chunk_manifest_key)
             manifest_data = response['Body'].read().decode('utf-8')
             
-            # 3. Append the segment URLs from the chunk manifest
+            # 3. CRITICAL FIX: Append only the segment information and duration tags
             for line in manifest_data.splitlines():
-                # We append only the segment lines and their duration tags (#EXTINF)
-                if not line.startswith('#EXTM3U') and not line.startswith('#EXT-X-VERSION'):
-                    # IMPORTANT: Manifest segments are relative, we need to prefix them with the quality folder for the sequential playlist
-                    if line.endswith('.ts'):
-                        # Example: 720p/chunk_0000-0060_0001.ts
-                        sequential_content.append(f"{quality}/{line}")
-                    else:
-                        sequential_content.append(line)
+                
+                # Exclude ALL HEADER/FOOTER tags to prevent duplication
+                if line.startswith('#EXTM3U'):
+                    continue
+                if line.startswith('#EXT-X-VERSION:'):
+                    continue
+                if line.startswith('#EXT-X-TARGETDURATION:'):
+                    continue
+                if line.startswith('#EXT-X-MEDIA-SEQUENCE:'):
+                    continue
+                if line.startswith('#EXT-X-ENDLIST'):
+                    continue
+                
+                # Now, append the segment URLs and duration tags (#EXTINF)
+                if line.endswith('.ts'):
+                    # Prefix the segment URL with the quality folder for the sequential playlist
+                    sequential_content.append(f"{quality}/{line}")
+                else:
+                    sequential_content.append(line)
+                    
         except Exception as e:
             logger.error(f"Missing chunk manifest {chunk_manifest_key}. Sequence broken!")
             raise e
             
-    # 4. Create the final sequential manifest
+    # 4. Finalize the manifest
     final_manifest_key = f"processed/{video_id}/{quality}/sequential.m3u8"
     
-    # Add the necessary end tag for HLS playback
+    # Add the necessary end tag ONLY ONCE at the very end
     sequential_content.append("#EXT-X-ENDLIST")
     
     final_manifest_body = '\n'.join(sequential_content)
     
+    # Save to S3
     S3.put_object(
         Bucket=PROCESSED_S3_BUCKET,
         Key=final_manifest_key,
