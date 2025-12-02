@@ -66,7 +66,7 @@ jobs:
           echo "Deploying ContentListingService..."
           
           # 1. INSTALL AND PACKAGE CODE
-          pip install -r backend\contentlisting_service\requirements.txt -t backend/contentlisting_service/package
+          pip install -r backend/contentlisting_service_service/requirements.txt -t backend/contentlisting_service/package
           cp backend/contentlisting_service/lambda_function.py backend/contentlisting_service/package/
           cd backend/contentlisting_service/package
           zip -r ../deployment.zip .
